@@ -6,6 +6,7 @@
 #include "memlayout.h"
 #include "spinlock.h"
 #include "proc.h"
+#include "sysinfo.h"
 
 uint64
 sys_exit(void)
@@ -94,4 +95,36 @@ sys_uptime(void)
   xticks = ticks;
   release(&tickslock);
   return xticks;
+}
+
+
+uint64
+sys_trace(void)
+{
+  //获得参数
+  int n;
+  if(argint(0, &n) < 0)
+    return -1;
+  struct proc *p = myproc();
+  //设置掩码
+  p->mask = n;
+  return 0;
+}
+
+uint64
+sys_sysinfo(void)
+{
+  struct sysinfo info;
+  uint64 addr;
+  // 获取用户态传入的sysinfo结构体
+  if (argaddr(0, &addr) < 0) 
+    return -1;
+  
+  struct proc* p = myproc();
+  info.freemem = freeMemory();
+  info.nproc = nUProc();
+  // 将内核态中的info复制到用户态
+  if (copyout(p->pagetable, addr, (char*)&info, sizeof(info)) < 0)
+    return -1;
+  return 0;
 }
